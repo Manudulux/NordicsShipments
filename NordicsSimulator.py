@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+from pathlib import Path
 
 st.set_page_config(page_title="48h Delivery Threshold Simulator", layout="wide", page_icon="🚚")
 
@@ -22,9 +23,12 @@ def fmt_t(kg):
     return f"{kg/1000:,.1f} t"
 
 # ── Data loading ───────────────────────────────────────────────────────────────
+DEFAULT_FILE = Path(__file__).parent / "NordicsExtract.xlsx"
+
 @st.cache_data(show_spinner="Reading Excel file…")
-def load_data(_uploaded_file, file_name):
-    df_raw = pd.read_excel(_uploaded_file, sheet_name="ZDELEXAS raw data Nordics")
+def load_data(_source, cache_key: str):
+    """Load from a file path or an uploaded file object; cache_key tells Streamlit what changed."""
+    df_raw = pd.read_excel(_source, sheet_name="ZDELEXAS raw data Nordics")
     del_df = (
         df_raw
         .groupby(["Delivery", "Ship-To Party", "Delivery Date", "Sales Org", "Shipping Conditions"])
@@ -102,7 +106,22 @@ def find_threshold_for_target(del_df: pd.DataFrame, org: str, target_kg: float) 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.title("⚙️ Settings")
-    uploaded = st.file_uploader("📂 Upload the Excel file", type=["xlsx"])
+
+    # Option 1: load the default file bundled with the app
+    use_default = DEFAULT_FILE.exists()
+    if use_default:
+        if st.button("📂 Load NordicsExtract.xlsx", use_container_width=True,
+                     help="Load the NordicsExtract.xlsx file stored in the same folder as this script."):
+            st.session_state["use_default_file"] = True
+        if st.session_state.get("use_default_file"):
+            st.success("✅ Using NordicsExtract.xlsx")
+
+    # Option 2: upload a different file
+    uploaded = st.file_uploader(
+        "Or upload a different Excel file" if use_default else "📂 Upload the Excel file",
+        type=["xlsx"],
+        on_change=lambda: st.session_state.update({"use_default_file": False}),
+    )
 
     st.markdown("---")
     st.subheader("Step 1 thresholds (kg)")
@@ -137,11 +156,18 @@ st.markdown(
     "directly to compensate."
 )
 
-if uploaded is None:
-    st.info("👈 Upload the Excel file in the sidebar to begin.")
+# Resolve data source: default file takes priority if the button was used
+if st.session_state.get("use_default_file") and DEFAULT_FILE.exists():
+    data_source = DEFAULT_FILE
+    cache_key   = "default_NordicsExtract"
+elif uploaded is not None:
+    data_source = uploaded
+    cache_key   = uploaded.name
+else:
+    st.info("👈 Click **Load NordicsExtract.xlsx** or upload a file in the sidebar to begin.")
     st.stop()
 
-del_df = load_data(uploaded, uploaded.name)
+del_df = load_data(data_source, cache_key)
 metrics = compute_metrics(del_df, sim_thresholds)
 
 total_target  = sum(m["target_kg"]  for m in metrics.values())
@@ -436,6 +462,8 @@ st.caption(
     "Baseline thresholds: SE=700 kg · DK=1,500 kg · NO=2,500 kg · FI=2,500 kg  |  "
     "Weight aggregated at delivery level  |  SC=5 = 48h · SC=2 = 24h"
 )
+
+
 
 
 
