@@ -20,8 +20,8 @@ COLORS        = {"SE01": "#1f77b4", "DK01": "#2ca02c", "NO01": "#ff7f0e", "FI01"
 
 # ── Data loading ───────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Reading Excel file…")
-def load_data(file_bytes):
-    df_raw = pd.read_excel(file_bytes, sheet_name="ZDELEXAS raw data Nordics")
+def load_data(_uploaded_file, file_name):  # underscore prefix tells Streamlit not to hash the file object
+    df_raw = pd.read_excel(_uploaded_file, sheet_name="ZDELEXAS raw data Nordics")
     # Aggregate to delivery level: one row per delivery
     del_df = (
         df_raw
@@ -89,7 +89,7 @@ if uploaded is None:
     st.info("👈 Upload the Excel file in the sidebar to begin.")
     st.stop()
 
-del_df = load_data(uploaded.read())
+del_df = load_data(uploaded, uploaded.name)
 
 # ── Compute key numbers ────────────────────────────────────────────────────────
 # Baseline: actual SC=5 in data (step1 + 3rd party combined)
@@ -416,3 +416,10 @@ st.caption(
     "Baseline thresholds: SE=700 kg · DK=1,500 kg · NO=2,500 kg · FI=2,500 kg  |  "
     "Weight aggregated at delivery level  |  SC=5 = 48h · SC=2 = 24h"
 )
+
+
+
+
+
+
+
