@@ -220,7 +220,7 @@ with tab1:
 
     tbl = pd.DataFrame(tbl_rows).set_index("Country")
     st.dataframe(
-        tbl.style.applymap(
+        tbl.style.map(
             lambda v: "color: green" if isinstance(v, int) and v == 0 else
                       "color: red"   if isinstance(v, int) and v != 0 else "",
             subset=["Gap vs target"],
@@ -416,10 +416,3 @@ st.caption(
     "Baseline thresholds: SE=700 kg · DK=1,500 kg · NO=2,500 kg · FI=2,500 kg  |  "
     "Weight aggregated at delivery level  |  SC=5 = 48h · SC=2 = 24h"
 )
-
-
-
-
-
-
-
